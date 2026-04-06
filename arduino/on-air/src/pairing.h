@@ -22,3 +22,14 @@ bool pairingAddDevice(const String& mac);
 bool pairingIsAllowed(const String& mac);
 
 uint8_t pairingDeviceCount();
+
+// Remove a specific MAC from the allowlist. Returns false if not found.
+bool pairingRemoveDevice(const String& mac);
+
+// Remove all paired devices.
+void pairingClearAll();
+
+// Fill buf with: [count][mac0 6 bytes][mac1 6 bytes]...
+// buf must be at least 1 + MAX_PAIRED_DEVICES * 6 = 49 bytes.
+// Sets *outLen to the number of bytes written.
+void pairingGetDeviceList(uint8_t* buf, uint8_t* outLen);

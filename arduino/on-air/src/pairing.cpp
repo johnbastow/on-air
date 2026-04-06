@@ -104,3 +104,46 @@ bool pairingAddDevice(const String& mac) {
 uint8_t pairingDeviceCount() {
     return EEPROM.read(ADDR_COUNT);
 }
+
+bool pairingRemoveDevice(const String& mac) {
+    uint8_t count = EEPROM.read(ADDR_COUNT);
+    uint8_t incoming[MAC_LEN];
+    macToBytes(mac, incoming);
+
+    for (uint8_t i = 0; i < count; i++) {
+        int base = ADDR_MACS + i * MAC_LEN;
+        bool match = true;
+        for (int j = 0; j < MAC_LEN; j++) {
+            if (EEPROM.read(base + j) != incoming[j]) { match = false; break; }
+        }
+        if (match) {
+            // Shift subsequent entries down by one slot
+            for (uint8_t k = i; k < count - 1; k++) {
+                int src = ADDR_MACS + (k + 1) * MAC_LEN;
+                int dst = ADDR_MACS + k * MAC_LEN;
+                for (int j = 0; j < MAC_LEN; j++) EEPROM.write(dst + j, EEPROM.read(src + j));
+            }
+            EEPROM.write(ADDR_COUNT, count - 1);
+            Serial.print("[pairing] Removed: ");
+            Serial.println(mac);
+            return true;
+        }
+    }
+    return false;
+}
+
+void pairingClearAll() {
+    EEPROM.write(ADDR_COUNT, 0);
+    Serial.println("[pairing] All devices cleared");
+}
+
+void pairingGetDeviceList(uint8_t* buf, uint8_t* outLen) {
+    uint8_t count = EEPROM.read(ADDR_COUNT);
+    buf[0] = count;
+    for (uint8_t i = 0; i < count; i++) {
+        int src = ADDR_MACS + i * MAC_LEN;
+        int dst = 1 + i * MAC_LEN;
+        for (int j = 0; j < MAC_LEN; j++) buf[dst + j] = EEPROM.read(src + j);
+    }
+    *outLen = 1 + count * MAC_LEN;
+}
